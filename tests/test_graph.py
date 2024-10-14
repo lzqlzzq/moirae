@@ -1,25 +1,26 @@
 from pydantic import BaseModel
 
-import autonode
+import moirae
 
 
-class Add(autonode.Node):
-    class Input(autonode.Data):
+class Add(moirae.Node):
+    class Input(moirae.Data):
         a: float
         b: float
 
-    class Output(autonode.Data):
+    class Output(moirae.Data):
         o: float
 
     async def execute(self, inputs: Input):
         return self.Output(o=inputs.a + inputs.b)
 
-class Multiply(autonode.Node):
-    class Input(autonode.Data):
+
+class Multiply(moirae.Node):
+    class Input(moirae.Data):
         a: float
         b: float
 
-    class Output(autonode.Data):
+    class Output(moirae.Data):
         o: float
 
     async def execute(self, inputs: Input):
@@ -31,7 +32,7 @@ graph = {
         'node': 'Add',
         'arguments': {},
         'inputs': {
-            'a': 2, 'b': autonode.Input()
+            'a': 2, 'b': moirae.Input()
         }
     },
     'b1': {
@@ -43,7 +44,7 @@ graph = {
     }
 }
 
-# result = autonode.run(graph)
+# result = moirae.run(graph)
 
 '''
 with Executor(graph) as e:
