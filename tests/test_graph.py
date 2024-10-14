@@ -63,7 +63,7 @@ async with Executor(graph) as e:
 
 
 
-g = autonode.Graph(graph)
+g = moirae.Graph(graph)
 print(g.inputs_schema)
 print(g.args_schema)
 print(g.outputs_schema)
