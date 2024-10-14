@@ -1,0 +1,20 @@
+[project]
+name = "moirae"
+requires-python = ">=3.8"
+authors = [
+    {name = "Zhongqi Luo", email = "luozhongqi@mail.com"}
+]
+maintainers = [
+    {name = "Zhongqi Luo", email = "luozhongqi@mail.com"}
+]
+description = "A workflow execution engine supports both dynamic and static DAGs."
+readme = {file = "README.md", content-type = "text/markdown"}
+# license = {file = "LICENSE"}
+
+version = "0.1.0"
+
+dependencies = [
+    "networkx>=3.0",
+    "pydantic>=2.6"
+]
+
