@@ -18,3 +18,8 @@ dependencies = [
     "pydantic>=2.6"
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["moirae"]
+exclude = []
+namespaces = false
