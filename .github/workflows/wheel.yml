@@ -8,7 +8,6 @@ on:
 
 jobs:
   upload_pypi:
-    needs: merge_artifacts
     runs-on: ubuntu-latest
     environment:
       name: pypi
