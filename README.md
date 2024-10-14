@@ -4,11 +4,16 @@
 # Getting Started
 ## Prerequisites
 `Moirae` requires `python>3.8`.
+## Developmental Installation
+```
+git clone https://github.com/lzqlzzq/moirae
+pip install -e moirae
+```
 ## Define Node
 Node is a basic unit in workflow where the data be transformed. A `Node` class must inherit from `moirae.Node`, which is a subclass of [Pydantic BaseModel](https://docs.pydantic.dev/latest/api/base_model/). The defination of a `Node` class must include:
-    - An `Input` class: Must inherit from `moirae.Data`. Defines the input data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`.
-    - An `Output` class: Must inherit from `moirae.Data`. Defines the output data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`. Attention the inputs and outputs of the node will be checked by `moirae`.
-    - An `execute` fuction: Must be an `async` function. Defines how the input data will be transformed to output data. A `Input` instance will be passed into the `execute` function. The arguments of the node can be accessed by `self`.
+- An `Input` class: Must inherit from `moirae.Data`. Defines the input data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`.
+- An `Output` class: Must inherit from `moirae.Data`. Defines the output data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`. Attention the inputs and outputs of the node will be checked by `moirae`.
+- An `execute` fuction: Must be an `async` function. Defines how the input data will be transformed to output data. An `Input` instance will be passed into the `execute` function. The arguments of the node can be accessed by `self`.
 ```[python]
 import moirae
 
@@ -38,7 +43,7 @@ Then, it would be registered in `moirae.NODES`:
 print(moirae.NODES)  # {'AddMul': <class '__main__.AddMul'>}
 ```
 ## Execute One Node
-You can eagerly execute the node. The result would be returned as the node is executed.
+You can eagerly execute the node. The result would be returned as the node is successfully executed. `Moirea` will check if the output is match `Node.Output`.
 ```[python]
 # Initialize node instance
 add_mul_instance1 = AddMul(coef=2.)
