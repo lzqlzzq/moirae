@@ -57,4 +57,77 @@ output = add_mul_instance1(input)
 print(type(output))  # <class '__main__.AddMul.Output'>
 print(output.o)      # o=6.0
 ```
+## Build a Graph
+Let' define two types of `Node`.
+```[python]
+class Add(moirae.Node):
+    class Input(moirae.Data):
+        a: float
+        b: float
 
+    class Output(moirae.Data):
+        o: float
+
+    async def execute(self, inputs: Input):
+        await asyncio.sleep(1)  # Simulate waiting time
+
+        return self.Output(o=inputs.a + inputs.b)
+
+class Multiply(moirae.Node):
+    class Input(moirae.Data):
+        a: float
+        b: float
+
+    class Output(moirae.Data):
+        o: float
+
+    async def execute(self, inputs: Input):
+        await asyncio.sleep(2)  # Simulate waiting time
+
+        return self.Output(o=inputs.a * inputs.b)
+```
+We can build a simple graph with three nodes. The graph is a `dict[node_name: str, node_attr: dict]`.
+These attributes must be in `node_attr`:
+- `node`: The class name of the `moirae.Node` your defined.
+- `arguments`: Arguments of the node.
+- `inputs`: The inputs data. `${node_name.node_output_variable_name}` will define a data flow in the graph.
+```[python]
+graph = {
+    'a': {
+        'node': 'Add',
+        'arguments': {},
+        'inputs': {
+            'a': 1, 'b': 2  # a.o = (1 + 2)
+        }
+    },
+    'b': {
+        'node': 'Multiply',
+        'arguments': {},
+        'inputs': {
+            'a': 3, 'b': 2  # b.o = (3 * 2)
+        }
+    },
+    'c': {
+        'node': 'Add',
+        'arguments': {},
+        'inputs': {
+            'a': '${b.o}', 'b': '${a.o}'  # c.o = (b.o + a.o)
+        }
+    }
+}
+```
+You can show the computation graph:
+```
+mg = moirae.Graph(graph)
+
+print(mg.graph.nodes(data=True))
+print(mg.graph.edges(data=True))
+```
+Or visualize it with `networkx` and `matplotlib`:
+```[python]
+import networkx as nx
+import matplotlib.pyplot as plt
+
+nx.draw(mg.graph, with_labels=True)
+plt.show()
+```

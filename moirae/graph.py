@@ -110,7 +110,7 @@ class Graph:
     def _build_merkle_tree(self):
         in_degrees = self.graph.in_degree()
 
-        # Handle isolated nodes
+        # Handle leaf nodes
         leaf_nodes = [n for n in self.graph.nodes() if self.graph.in_degree(n) == 0]
         for n in leaf_nodes:
             this_node = self.graph.nodes[n]
@@ -121,7 +121,7 @@ class Graph:
                     hash(this_node['node'])).hexdigest()
 
         # Handle other nodes
-        for n in nx.topological_sort(self.graph):
+        for n in nx.topological_sort(self.graph):  # nx.topological_sort will discard isolated nodes
             this_node = self.graph.nodes[n]
             if(in_degrees[n] == 0):
                 continue
