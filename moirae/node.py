@@ -7,6 +7,7 @@ import asyncio
 from pydantic import BaseModel
 
 from moirae import Data
+from moirae.hash import stable_hash
 
 
 NODES = {}
@@ -33,12 +34,16 @@ class Node(BaseModel, ABC):
         if(not issubclass(cls.__dict__['Output'], Data)):
             raise TypeError(f"Output of the node {cls} must be a concflow.Data!")
 
-        cls._signature = hashlib.sha256((
+        cls._signature = cls._get_signature()
+
+    @classmethod
+    def _get_signature(cls):
+        return stable_hash(
             cls.__class__.__name__ + \
             str(sorted(cls.__dict__.keys())) + \
             str(sorted(cls.Input.__dict__.keys())) + \
             str(sorted(cls.Output.__dict__.keys())) + \
-            inspect.getsource(cls.execute)).encode('utf-8')).hexdigest()
+            inspect.getsource(cls.execute)).hexdigest()
 
     @abstractmethod
     async def execute(self):
@@ -59,10 +64,11 @@ class Node(BaseModel, ABC):
 
         return outputs
 
+
     def __hash__(self):
-        return int(hashlib.sha256(pickle.dumps((
+        return int(stable_hash(
                     self._signature,
-                    sorted(self.__dict__.values())))).hexdigest(), 32)
+                    sorted(self.__dict__.items())).hexdigest(), 32)
 
     @property
     def input_fields(self):

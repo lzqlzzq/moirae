@@ -2,12 +2,12 @@ import hashlib
 
 from pydantic import BaseModel
 
+from moirae.hash import stable_hash
+
 
 class Data(BaseModel):
     def __hash__(self):
-        return int(hashlib.sha256(
-            pickle.dumps((
-                sorted(self.__dict__.items())))).hexdigest(), 32)
+        return int(stable_hash(list(self.__dict__.items())).hexdigest(), 32)
 
 
 class Input(Data):

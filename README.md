@@ -1,5 +1,5 @@
 # Moirae
-`Moirae*` is an async workflow execution engine supports both dynamic and static DAGs in `python`.
+`Moirae*` is an async workflow execution engine supports static DAGs in `python`.
 > *) Moirae are Acient Greek gods. The role of the Moirae was to ensure that every being, mortal and divine, lived out their destiny as it was assigned to them by the laws of the universe.
 # Getting Started
 ## Prerequisites

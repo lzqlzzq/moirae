@@ -7,7 +7,7 @@ authors = [
 maintainers = [
     {name = "Zhongqi Luo", email = "luozhongqi@mail.com"}
 ]
-description = "A workflow execution engine supports both dynamic and static DAGs."
+description = "A workflow execution engine supports static DAGs."
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 

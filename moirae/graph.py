@@ -1,31 +1,38 @@
 import re
+import hashlib
+from copy import deepcopy
 
 import networkx as nx
 
 from moirae.node import Node, NODES
 from moirae.data import Input
+from moirae.hash import stable_hash
 
 
 _VAR_NAME_RE = r"[a-zA-Z_]\w*"
 # "${NODE_NAME}.{VAR_NAME}"
 _REF_RE = re.compile(r"\$\{(" + _VAR_NAME_RE + r").(" + _VAR_NAME_RE + r")\}")
 
-class _GraphFactory:
+
+class Graph:
     def __init__(self, graph):
-        self.graph = graph.copy()
-        self.compute_graph = nx.MultiDiGraph()
+        self.graph = nx.MultiDiGraph()
         self.data = {}
         self.inputs_schema = {}
         self.args_schema = {}
         self.outputs_schema = {}
+        self.hashes = {}
 
-        self._add_nodes()
-        self._add_edges()
+        # Build graph
+        self._add_nodes(graph)
+        self._add_edges(graph)
 
-        assert nx.is_directed_acyclic_graph(self.compute_graph), 'The given graph is not a DAG.'
+        assert nx.is_directed_acyclic_graph(self.graph), 'The given graph is not a DAG.'
 
-    def _add_nodes(self):
-        for node_name, node_attrs in self.graph.items():
+        self._build_merkle_tree()
+
+    def _add_nodes(self, graph):
+        for node_name, node_attrs in graph.items():
             if(re.match(_VAR_NAME_RE, node_name) is None):
                 raise NameError(f"node_name {node_name} is invaild.")
 
@@ -42,24 +49,40 @@ class _GraphFactory:
                     But received: {node_attrs["arguments"]}.''')
 
             self.outputs_schema[node_name] = node_class.Output
-            self.compute_graph.add_node(node_name, node=node)
+            self.graph.add_node(node_name, node=node)
 
-    def _add_edges(self):
-        for node_name, node_attrs in self.graph.items():
-            this_node = self.compute_graph.nodes[node_name]['node']
+    def _add_edges(self, graph):
+        for node_name, node_attrs in graph.items():
+            this_node = self.graph.nodes[node_name]['node']
+
+            # Check if the input matches the input defination
             if(set(node_attrs['inputs'].keys()) != this_node.input_fields.keys()):
                 raise ValueError(f"""Input of node {node_name} doesn' t match expected.\n
                     Expected inputs are: {this_node.input_fields}.\n
                     Received inputs are: {set(node_attrs['inputs'].keys())}""")
 
             for input_name, data in node_attrs['inputs'].items():
-                # If the input if an edge
+
+                # Not support dummy input for now.
+                """
+                # Handle dummy input
+                if(type(data) == Input):
+                    if(node_name not in self.inputs_schema):
+                        self.inputs_schema[node_name] = {}
+
+                    self.inputs_schema[node_name][input_name] = this_node.Input.__fields__[input_name]
+
+                    continue
+                """
+
+
+                # Handle edge
                 if(type(data) == str and _REF_RE.match(data)):
                     edge = _REF_RE.match(data)
 
                     out_node, output_name = edge.groups()
-                    out_node_class = self.compute_graph.nodes[out_node]['node']
-                    if(out_node not in self.compute_graph.nodes):
+                    out_node_class = self.graph.nodes[out_node]['node']
+                    if(out_node not in self.graph.nodes):
                         raise ValueError(f"No <node id={out_node}> referenced by <node id={node_name}>.")
 
                     if(output_name not in out_node_class.output_fields):
@@ -71,52 +94,46 @@ class _GraphFactory:
                     if(out_type != in_type):
                         raise TypeError(f"""Type of output <node id={out_node}>.{output_name}({in_type}) is not the same as <node id={node_name}>.{in_var_name}({in_type})""")
 
-                    self.compute_graph.add_edge(out_node, node_name, output_name=output_name, input_name=input_name)
-                    continue
-
-                # If the input is a dummy input
-                if(type(data) == Input):
-                    if(node_name not in self.inputs_schema):
-                        self.inputs_schema[node_name] = {}
-
-                    self.inputs_schema[node_name][input_name] = this_node.Input.__fields__[input_name]
+                    self.graph.add_edge(out_node, node_name, output_name=output_name, input_name=input_name)
 
                     continue
 
-                # If the input is given
+                # Handle value
                 if(node_name not in self.data):
                     self.data[node_name] = {}
-                self.data[node_name][input_name] = data
+                self.data[node_name][input_name] = deepcopy(data)
 
                 if(node_name not in self.args_schema):
                     self.args_schema[node_name] = {}
                 self.args_schema[node_name][input_name] = this_node.Input.__fields__[input_name]
 
+    def _build_merkle_tree(self):
+        in_degrees = self.graph.in_degree()
 
-def Graph(graph: dict):
-    return _GraphFactory(graph)
+        # Handle isolated nodes
+        leaf_nodes = [n for n in self.graph.nodes() if self.graph.in_degree(n) == 0]
+        for n in leaf_nodes:
+            this_node = self.graph.nodes[n]
 
+            # Hash of Leaf Nodes: hash(hash(Input); hash(Node))
+            this_node['hash'] = stable_hash(
+                    hash(this_node['node'].Input.parse_obj(self.data[n])),
+                    hash(this_node['node'])).hexdigest()
 
-"""
-example_graph = {
-    "separation1": {
-        "node": "SourceSeparation",
-        "arguments": {
-            "track": "vocals",
-            "model": "xxx"
-        },
-        "inputs": {
-            "audio": "DATA......"
-            }
-        },
-    "svc1": {
-        "node": "SVC",
-        "arguments": {
-            "model": "xxx"
-        },
-        "inputs": {
-            "audio": "${seperation1.vocals}"  # Use output from other nodes
-            }
-        }
-    }
-"""
+        # Handle other nodes
+        for n in nx.topological_sort(self.graph):
+            this_node = self.graph.nodes[n]
+            if(in_degrees[n] == 0):
+                continue
+            elif(in_degrees[n] == len(this_node['node'].input_fields)):
+                # Hash Nodes without ouside inputs: hash(hash(ParentNodes); hash(Node))
+                this_node['hash'] = stable_hash(
+                        list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
+                        hash(this_node['node'])).hexdigest()
+            else:
+                # Hash Nodes with ouside inputs: hash(hash(ParentNodes); hash(Input); hash(Node))
+                this_node['hash'] = stable_hash(
+                        list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
+                        self.data[n],
+                        hash(this_node['node'])).hexdigest()
+
