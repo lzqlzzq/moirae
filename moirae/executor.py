@@ -17,8 +17,7 @@ class Executor:
 
         self.done = False
 
-        coroutines = self._dispatch_tasks()
-        self.tasks = [asyncio.create_task(coroutine) for coroutine in coroutines]
+        self.tasks = self._dispatch_tasks()
         asyncio.create_task(self.execute())
 
     def __aiter__(self):
@@ -33,11 +32,24 @@ class Executor:
         return result
 
     async def execute(self):
-        await asyncio.gather(*self.tasks)
+        exc = None
+        for coro in asyncio.as_completed(self.tasks):
+            try:
+                await coro
+            except Exception as e:
+                exc = e
+                break
 
         # Send a stop signal
         self.done = True
         await self.outputs.put(None)
+
+        if(exc):
+            for t in self.tasks:
+                if(not t.done()):
+                    t.cancel()
+
+            raise exc
 
     def _dispatch_tasks(self):
         # Plan latch
@@ -67,11 +79,13 @@ class Executor:
         # Create coroutines
         coroutines = []
         for node_name, node_data in self.graph.nodes(data=True):
-            coroutines.append(self._node_worker(node_name,
-                node_data['node'],
-                node_data['dataflow'] if 'dataflow' in node_data else {},
-                node_data['latch'],
-                node_data['latch_to_countdown'] if 'latch_to_countdown' in node_data else []))
+            coroutines.append(
+                asyncio.create_task(
+                    self._node_worker(node_name,
+                        node_data['node'],
+                        node_data['dataflow'] if 'dataflow' in node_data else {},
+                        node_data['latch'],
+                        node_data['latch_to_countdown'] if 'latch_to_countdown' in node_data else [])))
 
         return coroutines
 
