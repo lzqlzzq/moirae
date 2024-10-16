@@ -64,7 +64,6 @@ class Node(BaseModel, ABC):
 
         return outputs
 
-
     def __hash__(self):
         return int(stable_hash(
                     self._signature,

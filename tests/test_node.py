@@ -36,3 +36,6 @@ def test_node():
     print(type(output))
     print(output)
 
+
+if __name__ == '__main__':
+    test_node()

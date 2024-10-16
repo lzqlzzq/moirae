@@ -1,4 +1,5 @@
 import asyncio
+from time import time
 
 import moirae
 
@@ -13,7 +14,7 @@ class Add(moirae.Node):
 
     async def execute(self, inputs: Input):
         await asyncio.sleep(1)  # Simulate running time
-
+        # raise ValueError
         return self.Output(o=inputs.a + inputs.b)
 
 
@@ -26,7 +27,7 @@ class Multiply(moirae.Node):
         o: float
 
     async def execute(self, inputs: Input):
-        await asyncio.sleep(2)  # Simulate running time
+        await asyncio.sleep(3)  # Simulate running time
 
         return self.Output(o=inputs.a * inputs.b)
 
@@ -55,11 +56,14 @@ graph = {
     }
 }
 
-g = moirae.Graph(graph)
-print('inputs_schema: ', g.inputs_schema)
-print('args_schema:', g.args_schema)
-print('outputs_schema:', g.outputs_schema)
-print('input_data:', g.input_data)
-print('nodes:', g.graph.nodes(data=True))
-print('edges:', g.graph.edges(data=True))
+
+async def run_graph():
+    g = moirae.Graph(graph)
+
+    async for (node_name, node_output) in moirae.Executor(g):
+        print(f'[{time()}]{node_name}: {node_output}', flush=True)
+
+
+if __name__ == "__main__":
+    asyncio.run(run_graph())
 

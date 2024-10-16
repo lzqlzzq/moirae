@@ -17,10 +17,12 @@ _REF_RE = re.compile(r"\$\{(" + _VAR_NAME_RE + r").(" + _VAR_NAME_RE + r")\}")
 class Graph:
     def __init__(self, graph):
         self.graph = nx.MultiDiGraph()
-        self.data = {}
+        self.input_data = {}
+
         self.inputs_schema = {}
         self.args_schema = {}
         self.outputs_schema = {}
+
         self.hashes = {}
 
         # Build graph
@@ -61,7 +63,7 @@ class Graph:
                     Expected inputs are: {this_node.input_fields}.\n
                     Received inputs are: {set(node_attrs['inputs'].keys())}""")
 
-            for input_name, data in node_attrs['inputs'].items():
+            for input_field, data in node_attrs['inputs'].items():
 
                 # Not support dummy input for now.
                 """
@@ -70,7 +72,7 @@ class Graph:
                     if(node_name not in self.inputs_schema):
                         self.inputs_schema[node_name] = {}
 
-                    self.inputs_schema[node_name][input_name] = this_node.Input.__fields__[input_name]
+                    self.inputs_schema[node_name][input_field] = this_node.Input.__fields__[input_field]
 
                     continue
                 """
@@ -80,32 +82,32 @@ class Graph:
                 if(type(data) == str and _REF_RE.match(data)):
                     edge = _REF_RE.match(data)
 
-                    out_node, output_name = edge.groups()
+                    out_node, output_field = edge.groups()
                     out_node_class = self.graph.nodes[out_node]['node']
                     if(out_node not in self.graph.nodes):
                         raise ValueError(f"No <node id={out_node}> referenced by <node id={node_name}>.")
 
-                    if(output_name not in out_node_class.output_fields):
-                        raise NameError(f"""Not existed field {output_name} in {out_node_class.Output} referenced by <node id={node_name}>.
+                    if(output_field not in out_node_class.output_fields):
+                        raise NameError(f"""Not existed field {output_field} in {out_node_class.Output} referenced by <node id={node_name}>.
                             The output fields of {out_node_class} are {out_node_class.output_fields}""")
 
-                    out_type = out_node_class.output_fields[output_name].annotation
-                    in_type = this_node.input_fields[input_name].annotation
+                    out_type = out_node_class.output_fields[output_field].annotation
+                    in_type = this_node.input_fields[input_field].annotation
                     if(out_type != in_type):
-                        raise TypeError(f"""Type of output <node id={out_node}>.{output_name}({in_type}) is not the same as <node id={node_name}>.{in_var_name}({in_type})""")
+                        raise TypeError(f"""Type of output <node id={out_node}>.{output_field}({in_type}) is not the same as <node id={node_name}>.{in_var_name}({in_type})""")
 
-                    self.graph.add_edge(out_node, node_name, output_name=output_name, input_name=input_name)
+                    self.graph.add_edge(out_node, node_name, output_field=output_field, input_field=input_field)
 
                     continue
 
                 # Handle value
-                if(node_name not in self.data):
-                    self.data[node_name] = {}
-                self.data[node_name][input_name] = deepcopy(data)
+                if(node_name not in self.input_data):
+                    self.input_data[node_name] = {}
+                self.input_data[node_name][input_field] = deepcopy(data)
 
                 if(node_name not in self.args_schema):
                     self.args_schema[node_name] = {}
-                self.args_schema[node_name][input_name] = this_node.Input.__fields__[input_name]
+                self.args_schema[node_name][input_field] = this_node.Input.__fields__[input_field]
 
     def _build_merkle_tree(self):
         in_degrees = self.graph.in_degree()
@@ -117,7 +119,7 @@ class Graph:
 
             # Hash of Leaf Nodes: hash(hash(Input); hash(Node))
             this_node['hash'] = stable_hash(
-                    hash(this_node['node'].Input.parse_obj(self.data[n])),
+                    hash(this_node['node'].Input.parse_obj(self.input_data[n])),
                     hash(this_node['node'])).hexdigest()
 
         # Handle other nodes
@@ -134,6 +136,6 @@ class Graph:
                 # Hash Nodes with ouside inputs: hash(hash(ParentNodes); hash(Input); hash(Node))
                 this_node['hash'] = stable_hash(
                         list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
-                        self.data[n],
+                        self.input_data[n],
                         hash(this_node['node'])).hexdigest()
 
