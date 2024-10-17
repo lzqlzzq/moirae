@@ -129,8 +129,7 @@ class Executor:
             raise RuntimeError(f"Error while handling node <{node_name}>") from e
 
 
-def execute_async(graph: Graph):
-    return Executor(graph)
+execute_async = Executor
 
 
 def execute(graph: Graph):

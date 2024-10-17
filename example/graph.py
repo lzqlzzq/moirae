@@ -65,9 +65,8 @@ print('edges:', mg.graph.edges(data=True))
 
 
 import networkx as nx
-
-
 import matplotlib.pyplot as plt
+
 
 nx.draw(mg.graph, with_labels=True)
 plt.show()

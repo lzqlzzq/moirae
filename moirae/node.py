@@ -46,7 +46,7 @@ class Node(BaseModel, ABC):
             inspect.getsource(cls.execute)).hexdigest()
 
     @abstractmethod
-    async def execute(self):
+    async def execute(self, inputs):
         raise NotImplementedError(f"The method <execute> must be implemented for {self.__class__}!")
 
     def check_inputs(self, inputs):

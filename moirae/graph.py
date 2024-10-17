@@ -5,7 +5,6 @@ from copy import deepcopy
 import networkx as nx
 
 from moirae.node import Node, NODES
-from moirae.data import Input
 from moirae.hash import stable_hash
 
 

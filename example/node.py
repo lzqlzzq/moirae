@@ -21,7 +21,7 @@ class AddMul(moirae.Node):
         return self.Output(o=(inputs.a + inputs.b) * self.coef)
 
 
-def test_node():
+def execute_node():
     print(moirae.NODES)
     # Initialize node instance
     add_mul_instance1 = AddMul(coef=2.)
@@ -38,4 +38,4 @@ def test_node():
 
 
 if __name__ == '__main__':
-    test_node()
+    execute_node()
