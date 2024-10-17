@@ -19,6 +19,8 @@ class Executor:
         self.done = False
 
         self.tasks = self._dispatch_tasks()
+
+        # Execute
         asyncio.create_task(self.execute())
 
     def __aiter__(self):
@@ -52,8 +54,7 @@ class Executor:
 
             raise exc
 
-    def _dispatch_tasks(self):
-        # Plan latch
+    def _plan_latch(self):
         for node_name in self.graph.nodes:
             predcessors = set(self.graph.predecessors(node_name))
             latch = Latch(len(predcessors))
@@ -65,7 +66,7 @@ class Executor:
                     self.graph.nodes(data=True)[p]['latch_to_countdown'] = []
                 self.graph.nodes(data=True)[p]['latch_to_countdown'].append(latch)
 
-        # Plan dataflow
+    def _plan_dataflow(self):
         dataflows = {}
         for out_node, in_node, out_edge in self.graph.out_edges(data=True):
             if(out_node not in dataflows):
@@ -74,8 +75,13 @@ class Executor:
                 dataflows[out_node][in_node] = []
 
             dataflows[out_node][in_node].append((out_edge['output_field'], out_edge['input_field']))
+
         for out_node, in_nodes in dataflows.items():
             self.graph.nodes(data=True)[out_node]['dataflow'] = in_nodes
+
+    def _dispatch_tasks(self):
+        self._plan_latch()
+        self._plan_dataflow()
 
         # Create coroutines
         coroutines = []
