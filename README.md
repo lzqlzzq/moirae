@@ -132,7 +132,7 @@ nx.draw(mg.graph, with_labels=True)
 plt.show()
 ```
 ## Async Execution
-`moirae` implements a async flow executor. All `Node`s can run as soon as its prerequisites fulfilled **without waiting**.
+`moirae` implements a async flow executor. All `Node`s can run as soon as its prerequisites fulfilled **without any waiting**.
 ```[python]
 async def run_graph():
     async for (node_name, node_output) in moirae.execute_async(mg):

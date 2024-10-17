@@ -3,7 +3,8 @@ import asyncio
 
 import networkx as nx
 
-from moirae import Graph, Latch, Node
+from moirae.latch import Latch
+from moirae import Graph, Node
 
 
 class Executor:
