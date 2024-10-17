@@ -55,11 +55,20 @@ graph = {
     }
 }
 
-g = moirae.Graph(graph)
-print('inputs_schema: ', g.inputs_schema)
-print('args_schema:', g.args_schema)
-print('outputs_schema:', g.outputs_schema)
-print('input_data:', g.input_data)
-print('nodes:', g.graph.nodes(data=True))
-print('edges:', g.graph.edges(data=True))
+mg = moirae.Graph(graph)
+print('inputs_schema:', mg.inputs_schema)
+print('args_schema:', mg.args_schema)
+print('outputs_schema:', mg.outputs_schema)
+print('input_data:', mg.input_data)
+print('nodes:', mg.graph.nodes(data=True))
+print('edges:', mg.graph.edges(data=True))
+
+
+import networkx as nx
+
+
+import matplotlib.pyplot as plt
+
+nx.draw(mg.graph, with_labels=True)
+plt.show()
 

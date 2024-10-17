@@ -125,3 +125,14 @@ class Executor:
             self.outputs.put_nowait((node_name, deepcopy(outputs)))
         except Exception as e:
             raise RuntimeError(f"Error while handling node <{node_name}>") from e
+
+
+def execute_async(graph: Graph):
+    return Executor(graph)
+
+'''
+def execute(graph: Graph):
+    outputs = {}
+    async for (node_name, node_output) in Executor(mg):
+        print(f'[{time()}]{node_name}: {node_output}')
+'''

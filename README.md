@@ -131,3 +131,14 @@ import matplotlib.pyplot as plt
 nx.draw(mg.graph, with_labels=True)
 plt.show()
 ```
+## Async Execution
+`moirae` implements a async flow executor. All `Node`s can run as soon as its prerequisites fulfilled **without waiting**.
+```[python]
+async def run_graph():
+    async for (node_name, node_output) in moirae.execute_async(mg):
+        print(f'[{time()}]{node_name}: {node_output}', flush=True)
+
+
+if __name__ == "__main__":
+    asyncio.run(run_graph())
+```

@@ -58,10 +58,12 @@ graph = {
 
 
 async def run_graph():
-    g = moirae.Graph(graph)
+    mg = moirae.Graph(graph)
 
-    async for (node_name, node_output) in moirae.Executor(g):
-        print(f'[{time()}]{node_name}: {node_output}', flush=True)
+    print(f'[{time()}]: Start executing.')
+    async for (node_name, node_output) in moirae.execute_async(mg):
+        print(f'[{time()}]{node_name}: {node_output}')
+    print(f'[{time()}]: Finish executing.')
 
 
 if __name__ == "__main__":
