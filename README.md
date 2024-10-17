@@ -138,7 +138,6 @@ async def run_graph():
     async for (node_name, node_output) in moirae.execute_async(mg):
         print(f'[{time()}]{node_name}: {node_output}', flush=True)
 
-
 if __name__ == "__main__":
     asyncio.run(run_graph())
 ```
