@@ -14,6 +14,7 @@ class Add(moirae.Node):
 
     async def execute(self, inputs: Input):
         await asyncio.sleep(1)  # Simulate running time
+
         return self.Output(o=inputs.a + inputs.b)
 
 
