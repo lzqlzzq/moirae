@@ -135,9 +135,22 @@ plt.show()
 `moirae` implements a async flow executor. All `Node`s can run as soon as its prerequisites fulfilled **without any waiting**.
 ```[python]
 async def run_graph():
+    print(f'[{time()}]: Start executing.')
     async for (node_name, node_output) in moirae.execute_async(mg):
-        print(f'[{time()}]{node_name}: {node_output}', flush=True)
+        print(f'[{time()}]{node_name}: {node_output}')
+    print(f'[{time()}]: Finish executing.')
 
 if __name__ == "__main__":
     asyncio.run(run_graph())
+
+# [1729154400.537708]: Start executing.
+# [1729154401.5393991]a: o=3.0
+# [1729154403.541043]b: o=6.0
+# [1729154404.5419276]c: o=9.0
+# [1729154404.5420897]: Finish executing.
+```
+## Eager Execution
+You can also use `moirae.execute` directly for eager execution.
+```[python]
+print(moirae.execute(mg)) # {'a': Output(o=3.0), 'b': Output(o=6.0), 'c': Output(o=9.0)}
 ```

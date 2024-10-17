@@ -57,7 +57,7 @@ graph = {
 }
 
 
-async def run_graph():
+async def execute_graph_async():
     mg = moirae.Graph(graph)
 
     print(f'[{time()}]: Start executing.')
@@ -66,6 +66,18 @@ async def run_graph():
     print(f'[{time()}]: Finish executing.')
 
 
-if __name__ == "__main__":
-    asyncio.run(run_graph())
+def execute_graph():
+    mg = moirae.Graph(graph)
 
+    print(f'[{time()}]: Start executing.')
+    print(moirae.execute(mg))
+    print(f'[{time()}]: Finish executing.')
+
+
+if __name__ == "__main__":
+    print('Testing async execute.')
+    asyncio.run(execute_graph_async())
+
+    print('')
+    print('Testing sync execute.')
+    execute_graph()

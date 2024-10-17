@@ -26,7 +26,7 @@ class Multiply(moirae.Node):
         o: float
 
     async def execute(self, inputs: Input):
-        await asyncio.sleep(2)  # Simulate running time
+        await asyncio.sleep(3)  # Simulate running time
 
         return self.Output(o=inputs.a * inputs.b)
 
