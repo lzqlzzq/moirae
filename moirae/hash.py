@@ -12,4 +12,6 @@ def recursively_sort(obj):
 
 
 def stable_hash(*args, **kwargs):
-	return hashlib.sha256(pickle.dumps(recursively_sort(args)))
+    sorted_data = recursively_sort(args)
+    hash_obj = hashlib.sha256(pickle.dumps(sorted_data))
+    return hash_obj.hexdigest()

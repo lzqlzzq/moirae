@@ -43,7 +43,7 @@ class Node(BaseModel, ABC):
             str(sorted(cls.__dict__.keys())) + \
             str(sorted(cls.Input.__dict__.keys())) + \
             str(sorted(cls.Output.__dict__.keys())) + \
-            inspect.getsource(cls.execute)).hexdigest()
+            inspect.getsource(cls.execute))
 
     @abstractmethod
     async def execute(self, inputs):
@@ -67,7 +67,7 @@ class Node(BaseModel, ABC):
     def __hash__(self):
         return int(stable_hash(
                     self._signature,
-                    sorted(self.__dict__.items())).hexdigest(), 32)
+                    sorted(self.__dict__.items())), 32)
 
     @property
     def input_fields(self):

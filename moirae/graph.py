@@ -117,10 +117,7 @@ class Graph:
             this_node = self.graph.nodes[n]
 
             # Hash of Leaf Nodes: hash(hash(Input); hash(Node))
-            this_node['hash'] = stable_hash(
-                    hash(this_node['node'].Input.parse_obj(self.input_data[n])),
-                    hash(this_node['node'])).hexdigest()
-
+            this_node['hash'] = stable_hash(stable_hash(self.input_data[n]), hash(this_node['node']))
         # Handle other nodes
         for n in nx.topological_sort(self.graph):  # nx.topological_sort will discard isolated nodes
             this_node = self.graph.nodes[n]
@@ -130,11 +127,11 @@ class Graph:
                 # Hash Nodes without ouside inputs: hash(hash(ParentNodes); hash(Node))
                 this_node['hash'] = stable_hash(
                         list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
-                        hash(this_node['node'])).hexdigest()
+                        hash(this_node['node']))
             else:
                 # Hash Nodes with ouside inputs: hash(hash(ParentNodes); hash(Input); hash(Node))
                 this_node['hash'] = stable_hash(
                         list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
-                        self.input_data[n],
-                        hash(this_node['node'])).hexdigest()
+                        stable_hash(self.input_data[n]),
+                        hash(this_node['node']))
 
