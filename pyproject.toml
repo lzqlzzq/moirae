@@ -11,11 +11,13 @@ description = "A workflow execution engine supports static DAGs."
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 
-version = "0.1.0"
+version = "0.1.1"
 
 dependencies = [
     "networkx>=3.0",
-    "pydantic>=2.6"
+    "pydantic>=2.6",
+    "msgpack>=1.0",
+    "lz4>=4.2"
 ]
 
 [tool.setuptools.packages.find]
