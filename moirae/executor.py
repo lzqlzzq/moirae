@@ -1,6 +1,6 @@
 from copy import deepcopy
 import asyncio
-
+from warnings import warn
 import networkx as nx
 
 from moirae.latch import Latch
@@ -81,7 +81,12 @@ class Executor:
         hashes = {n[1]['hash'] for n in self.graph.nodes(data=True)}
 
         async def check_cache_wrapper(hash_val: str):
-            return await self.cache.exists(hash_val)
+            try:
+                return await self.cache.exists(hash_val)
+            except Exception as e:
+                warn(f"Error checking cache for hash {hash_val}，exception {e}", stacklevel=2)
+
+                return False
 
         return {h for h, is_valid in zip(hashes, await asyncio.gather(*map(check_cache_wrapper, hashes)))
             if is_valid}
@@ -125,9 +130,10 @@ class Executor:
                 try:
                     # Cache hit
                     outputs = node.Output.parse_obj(deserialize(await self.cache.get(hash_val)))
-                except:
+                except Exception as e:
                     # Always execute if cannot get cache
                     outputs = await self._execute_node(node_name, node)
+                    warn(f"Error getting cache while handling node <{node_name}>，exception {e}", stacklevel=2)
             else:
                 # Cache miss, execute node
                 outputs = await self._execute_node(node_name, node)
@@ -145,8 +151,8 @@ class Executor:
             if(self.cache):
                 try:
                     await self.cache.put(hash_val, serialize(dict(outputs)))
-                except:
-                    raise CacheIOError("Put cache failed!")
+                except Exception as e:
+                    warn(f"Error putting cache while handling node <{node_name}>，exception {e}", stacklevel=2)
         except Exception as e:
             # self.outputs.put_nowait((node_name, e))
             raise RuntimeError(f"Error while handling node <{node_name}>") from e
