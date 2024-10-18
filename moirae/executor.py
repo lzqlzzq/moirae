@@ -1,10 +1,10 @@
 from copy import deepcopy
-import pickle
 import asyncio
 
 import networkx as nx
 
 from moirae.latch import Latch
+from moirae.serialize import serialize, deserialize
 from moirae import Graph, Node, Data, Cache, CacheIOError
 
 
@@ -87,7 +87,9 @@ class Executor:
             if is_valid}
 
     async def execute(self):
-        self.available_cache = await self._check_cache()
+        if(self.cache):
+            self.available_cache = await self._check_cache()
+
         self.tasks = self._dispatch_tasks()
 
         exc = None
@@ -122,7 +124,7 @@ class Executor:
             if(self.cache and hash_val in self.available_cache):
                 try:
                     # Cache hit
-                    outputs = pickle.loads(await self.cache.get(hash_val))
+                    outputs = node.Output.parse_obj(deserialize(await self.cache.get(hash_val)))
                 except:
                     # Always execute if cannot get cache
                     outputs = await self._execute_node(node_name, node)
@@ -142,7 +144,7 @@ class Executor:
             # Put cache
             if(self.cache):
                 try:
-                    await self.cache.put(hash_val, pickle.dumps(outputs))
+                    await self.cache.put(hash_val, serialize(dict(outputs)))
                 except:
                     raise CacheIOError("Put cache failed!")
         except Exception as e:

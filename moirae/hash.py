@@ -1,6 +1,6 @@
 import hashlib
 import pickle
-
+from moirae.serialize import serialize
 
 def recursively_sort(obj):
     if isinstance(obj, dict):
@@ -13,5 +13,5 @@ def recursively_sort(obj):
 
 def stable_hash(*args, **kwargs):
     sorted_data = recursively_sort(args)
-    hash_obj = hashlib.blake2b(pickle.dumps(sorted_data))
+    hash_obj = hashlib.blake2b(serialize(sorted_data))
     return hash_obj.hexdigest()

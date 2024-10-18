@@ -7,6 +7,7 @@ from moirae.hash import stable_hash
 
 
 class Data(BaseModel):
-    def __hash__(self):
-        return int(stable_hash(self), 32)
+    @property
+    def hash(self):
+        return stable_hash(self.__dict__.items())
 
