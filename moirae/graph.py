@@ -30,7 +30,7 @@ class Graph:
 
         assert nx.is_directed_acyclic_graph(self.graph), 'The given graph is not a DAG.'
 
-        self._build_merkle_tree()
+        self._topological_hash()
 
     def _add_nodes(self, graph):
         for node_name, node_attrs in graph.items():
@@ -108,7 +108,7 @@ class Graph:
                     self.args_schema[node_name] = {}
                 self.args_schema[node_name][input_field] = this_node.Input.__fields__[input_field]
 
-    def _build_merkle_tree(self):
+    def _topological_hash(self):
         in_degrees = self.graph.in_degree()
 
         # Handle leaf nodes
@@ -116,22 +116,23 @@ class Graph:
         for n in leaf_nodes:
             this_node = self.graph.nodes[n]
 
-            # Hash of Leaf Nodes: hash(hash(Input); hash(Node))
-            this_node['hash'] = stable_hash(stable_hash(self.input_data[n]), hash(this_node['node']))
+            # Hash of Leaf Nodes: hash(hash(Node); hash(Input))
+            this_node['hash'] = stable_hash(this_node['node'].hash, stable_hash(self.input_data[n]))
+
         # Handle other nodes
         for n in nx.topological_sort(self.graph):  # nx.topological_sort will discard isolated nodes
             this_node = self.graph.nodes[n]
             if(in_degrees[n] == 0):
                 continue
             elif(in_degrees[n] == len(this_node['node'].input_fields)):
-                # Hash Nodes without ouside inputs: hash(hash(ParentNodes); hash(Node))
+                # Hash Nodes without ouside inputs: hash(hash(Node); hash(ParentNodes))
                 this_node['hash'] = stable_hash(
-                        list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
-                        hash(this_node['node']))
+                        this_node['node'].hash,
+                        list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]))
             else:
-                # Hash Nodes with ouside inputs: hash(hash(ParentNodes); hash(Input); hash(Node))
+                # Hash Nodes with ouside inputs: hash(hash(Node); hash(ParentNodes); hash(Input))
                 this_node['hash'] = stable_hash(
+                        this_node['node'].hash,
                         list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
-                        stable_hash(self.input_data[n]),
-                        hash(this_node['node']))
+                        stable_hash(self.input_data[n]))
 
