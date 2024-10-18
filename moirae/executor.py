@@ -1,24 +1,24 @@
 from copy import deepcopy
+import pickle
 import asyncio
 
 import networkx as nx
 
 from moirae.latch import Latch
-from moirae import Graph, Node
+from moirae import Graph, Node, Data, Cache, CacheIOError
 
 
 class Executor:
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: Graph, cache: Cache = None):
         assert isinstance(graph, Graph)
 
         self.graph = deepcopy(graph.graph)
-        self.data_lock = asyncio.Lock()
+        self.input_data_lock = asyncio.Lock()
         self.input_data = deepcopy(graph.input_data)
         self.outputs = asyncio.Queue()
 
         self.done = False
-
-        self.tasks = self._dispatch_tasks()
+        self.cache = cache
 
         # Execute
         asyncio.create_task(self.execute())
@@ -33,26 +33,6 @@ class Executor:
             raise StopAsyncIteration
 
         return result
-
-    async def execute(self):
-        exc = None
-        for coro in asyncio.as_completed(self.tasks):
-            try:
-                await coro
-            except Exception as e:
-                exc = e
-                break
-
-        # Send a stop signal
-        self.done = True
-        await self.outputs.put(None)
-
-        if(exc):
-            for t in self.tasks:
-                if(not t.done()):
-                    t.cancel()
-
-            raise exc
 
     def _plan_latch(self):
         for node_name in self.graph.nodes:
@@ -92,54 +72,114 @@ class Executor:
                         node_data['node'],
                         node_data['dataflow'] if 'dataflow' in node_data else {},
                         node_data['latch'],
-                        node_data['latch_to_countdown'] if 'latch_to_countdown' in node_data else [])))
+                        node_data['latch_to_countdown'] if 'latch_to_countdown' in node_data else [],
+                        node_data['hash'])))
 
         return coroutines
+
+    async def _check_cache(self):
+        hashes = {n[1]['hash'] for n in self.graph.nodes(data=True)}
+
+        async def check_cache_wrapper(hash_val: str):
+            return await self.cache.exists(hash_val)
+
+        return {h for h, is_valid in zip(hashes, await asyncio.gather(*map(check_cache_wrapper, hashes)))
+            if is_valid}
+
+    async def execute(self):
+        self.available_cache = await self._check_cache()
+        self.tasks = self._dispatch_tasks()
+
+        exc = None
+        for coro in asyncio.as_completed(self.tasks):
+            try:
+                await coro
+            except Exception as e:
+                exc = e
+                break
+
+        # Send a stop signal
+        self.done = True
+        await self.outputs.put(None)
+
+        if(exc):
+            for t in self.tasks:
+                if(not t.done()):
+                    t.cancel()
+
+            raise exc
 
     async def _node_worker(self,
         node_name: str,
         node: Node,
         dataflow: dict[str, list[tuple[str, str]]],  # {"out_node": [("output_field", "input_field")]}
         upstream_latch: Latch,
-        downstream_latch: list[Latch]):
+        downstream_latch: list[Latch],
+        hash_val: str):
         await upstream_latch.wait()
 
         try:
-            # Parse data
-            data = node.Input.parse_obj(self.input_data[node_name])
+            if(self.cache and hash_val in self.available_cache):
+                try:
+                    # Cache hit
+                    outputs = pickle.loads(await self.cache.get(hash_val))
+                except:
+                    # Always execute if cannot get cache
+                    outputs = await self._execute_node(node_name, node)
+            else:
+                # Cache miss, execute node
+                outputs = await self._execute_node(node_name, node)
 
-            # Execute the node
-            node.check_inputs(data)
-            outputs = await node.execute(data)
-            node.check_outputs(outputs)
-
-            # Dispatch data
-            async with self.data_lock:
-                for out_node, data_flow in dataflow.items():
-                    for output_field, input_field in data_flow:
-                        if(out_node not in self.input_data):
-                            self.input_data[out_node] = {}
-                        if(input_field not in self.input_data[out_node]):
-                            self.input_data[out_node][input_field] = {}
-
-                        data = getattr(outputs, output_field)
-                        self.input_data[out_node][input_field] = deepcopy(data)
+            # Dispatch data to downstream nodes
+            await self._dispatch_data(outputs, dataflow)
 
             for l in downstream_latch:
                 await l.count_down()
 
             # Return data
             self.outputs.put_nowait((node_name, deepcopy(outputs)))
+
+            # Put cache
+            if(self.cache):
+                try:
+                    await self.cache.put(hash_val, pickle.dumps(outputs))
+                except:
+                    raise CacheIOError("Put cache failed!")
         except Exception as e:
-            self.outputs.put_nowait((node_name, e))
+            # self.outputs.put_nowait((node_name, e))
             raise RuntimeError(f"Error while handling node <{node_name}>") from e
+
+    async def _execute_node(self, node_name: str, node: Node):
+        # Parse data
+        data = node.Input.parse_obj(self.input_data[node_name])
+
+        # Execute the node
+        node.check_inputs(data)
+        outputs = await node.execute(data)
+        node.check_outputs(outputs)
+
+        return outputs
+
+    async def _dispatch_data(self,
+        node_outputs: Data,
+        dataflow: dict[str, list[tuple[str, str]]]):
+        async with self.input_data_lock:
+            for out_node, data_flow in dataflow.items():
+                for output_field, input_field in data_flow:
+                    if(out_node not in self.input_data):
+                        self.input_data[out_node] = {}
+                    if(input_field not in self.input_data[out_node]):
+                        self.input_data[out_node][input_field] = {}
+
+                    data = getattr(node_outputs, output_field)
+                    self.input_data[out_node][input_field] = deepcopy(data)
 
 
 execute_async = Executor
 
 
-def execute(graph: Graph):
+def execute(*args, **kwargs):
     async def execute_wrapper():
-        return [(node_name, node_output) async for (node_name, node_output) in Executor(graph)]
+        return {node_name: node_output async for (node_name, node_output) in Executor(*args, **kwargs)}
 
-    return dict(asyncio.run(execute_wrapper()))
+    return asyncio.run(execute_wrapper())

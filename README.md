@@ -122,6 +122,15 @@ mg = moirae.Graph(graph)
 
 print(mg.graph.nodes(data=True))
 print(mg.graph.edges(data=True))
+
+"""
+inputs_schema: {}
+args_schema: {'a': {'a': FieldInfo(annotation=float, required=True), 'b': FieldInfo(annotation=float, required=True)}, 'b': {'a': FieldInfo(annotation=float, required=True), 'b': FieldInfo(annotation=float, required=True)}}
+outputs_schema: {'a': <class '__main__.Add.Output'>, 'b': <class '__main__.Multiply.Output'>, 'c': <class '__main__.Add.Output'>}
+input_data: {'a': {'a': 1, 'b': 2}, 'b': {'a': 3, 'b': 2}}
+nodes: [('a', {'node': Add(), 'hash': '305dbab2622b17d1c126c74fd9f6fda61dba11f0c9194fc0f703a52ee9e56fccd048b677c11fd4b4c0bf1eea68a7fce6570420b8ac17af92473cbad18154e024'}), ('b', {'node': Multiply(), 'hash': '7e2350d2b67eda7e2b5f6e0d04657fb943c0a87477fc692a9d17f9514b0b227ae6fcd11c6b1be31c2fa3e1a759573ce673ea37d0b55acd1860490d6732525d41'}), ('c', {'node': Add(), 'hash': '3d5d618cb1fc65d25d01f790e04b68a832fd618bb78902b2f5c517a7a284ec967f55cd777ae42d8df06840424129609a553b3731981ab6c813e27e54051413cf'})]
+edges: [('a', 'c', {'output_field': 'o', 'input_field': 'b'}), ('b', 'c', {'output_field': 'o', 'input_field': 'a'})]
+"""
 ```
 Or visualize it with `networkx` and `matplotlib`:
 ```[python]
@@ -154,3 +163,61 @@ You can also use `moirae.execute` directly for eager execution.
 ```[python]
 print(moirae.execute(mg)) # {'a': Output(o=3.0), 'b': Output(o=6.0), 'c': Output(o=9.0)}
 ```
+## Cache Mechanism
+`moirae` provides a cache mechanism based on topological hashing for storing intermediate results. If the cache hits, `moirae` will try to fetch the data from the cache, avoiding re-run the node. Implement a `moirae.Cache` class like this:
+```[python]
+import os
+import aiofiles
+
+
+class FileCache(moirae.Cache):
+    def __init__(self, root_dir: str):
+        self.root_dir = root_dir
+
+    async def exists(self, hash_val: str):
+        return os.path.exists(os.path.join(self.root_dir, hash_val))
+
+    async def get(self, hash_val: str):
+        async with aiofiles.open(os.path.join(self.root_dir, hash_val), mode='rb') as f:
+            return await f.read()
+
+    async def put(self, hash_val: str, value: bytes):
+        async with aiofiles.open(os.path.join(self.root_dir, hash_val), mode='wb') as f:
+            await f.write(value)
+```
+And execute with `cache` argument:
+```[python]
+async def execute_graph_async():
+    mg = moirae.Graph(graph)
+
+    print(f'[{time()}]: Start executing.')
+    async for (node_name, node_output) in moirae.execute_async(mg, FileCache(".")):
+        print(f'[{time()}]{node_name}: {node_output}')
+    print(f'[{time()}]: Finish executing.')
+
+
+if __name__ == "__main__":
+    print('Testing execute without cache.')
+    asyncio.run(execute_graph_async())
+
+    print('Cache is stored!')
+    asyncio.run(execute_graph_async())
+```
+Will output:
+```
+Testing execute without cache.
+[1729241948.6246948]: Start executing.
+[1729241949.6267285]a: o=3.0
+[1729241951.6277223]b: o=6.0
+[1729241952.6284506]c: o=9.0
+[1729241952.6289535]: Finish executing.
+Cache is stored!
+[1729241952.6298018]: Start executing.
+[1729241952.6310601]b: o=6.0
+[1729241952.6312633]a: o=3.0
+[1729241952.6314924]c: o=9.0
+[1729241952.6403558]: Finish executing.
+```
+The cache is stored at second run. So `moirae` directly fetch outputs from cache instead of running the node.
+Remember we defined `Add` node costs 1 second, `Multiply` costs 3 seconds. And if we delete the cache of node `a` and `c`, it will costs only 2 seconds.
+
