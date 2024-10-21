@@ -50,11 +50,12 @@ class Executor:
         for out_node, in_node, out_edge in self.graph.out_edges(data=True):
             if(out_node not in dataflows):
                 dataflows[out_node] = {}
-            if(in_node not in dataflows[out_node]):
-                dataflows[out_node][in_node] = []
+            if(out_edge['output_field'] not in dataflows[out_node]):
+                dataflows[out_node][out_edge['output_field']] = []
 
-            dataflows[out_node][in_node].append((out_edge['output_field'], out_edge['input_field']))
+            dataflows[out_node][out_edge['output_field']].append((in_node, out_edge['input_field']))
 
+        # (out_field: [(in_node, in_field)])
         for out_node, in_nodes in dataflows.items():
             self.graph.nodes(data=True)[out_node]['dataflow'] = in_nodes
 
@@ -170,10 +171,11 @@ class Executor:
     def _dispatch_data(self,
         node_outputs: Data,
         dataflow: dict[str, list[tuple[str, str]]]):
-        for out_node, data_flow in dataflow.items():
-            for output_field, input_field in data_flow:
-                data = getattr(node_outputs, output_field)
-                self.input_data[out_node][input_field] = deepcopy(data)
+        for output_field, data_flow in dataflow.items():
+            data = getattr(node_outputs, output_field)
+
+            for output_node, input_field in data_flow:
+                self.input_data[output_node][input_field] = deepcopy(data)
 
 
 execute_async = Executor
