@@ -2,6 +2,7 @@ import hashlib
 import pickle
 from moirae.serialize import serialize
 
+
 def recursively_sort(obj):
     if isinstance(obj, dict):
         return tuple((k, recursively_sort(v)) for k, v in sorted(obj.items(), key=lambda x: str(x[0])))
