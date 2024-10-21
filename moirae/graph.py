@@ -22,8 +22,6 @@ class Graph:
         self.args_schema = {}
         self.outputs_schema = {}
 
-        self.hashes = {}
-
         # Build graph
         self._add_nodes(graph)
         self._add_edges(graph)

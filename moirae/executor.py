@@ -80,11 +80,11 @@ class Executor:
     async def _check_cache(self):
         hashes = {n[1]['hash'] for n in self.graph.nodes(data=True)}
 
-        async def check_cache_wrapper(hash_val: str):
+        async def check_cache_wrapper(hash_key: str):
             try:
-                return await self.cache.exists(hash_val)
+                return await self.cache.exists(hash_key)
             except Exception as e:
-                warn(f"Error checking cache for hash {hash_val}，exception {e}", stacklevel=2)
+                warn(f"Error checking cache for hash {hash_key}，exception {e}", stacklevel=2)
 
                 return False
 
@@ -122,14 +122,14 @@ class Executor:
         dataflow: dict[str, list[tuple[str, str]]],  # {"out_node": [("output_field", "input_field")]}
         upstream_latch: Latch,
         downstream_latch: list[Latch],
-        hash_val: str):
+        hash_key: str):
         await upstream_latch.wait()
 
         try:
-            if(self.cache and hash_val in self.available_cache):
+            if(self.cache and hash_key in self.available_cache):
                 try:
                     # Cache hit
-                    outputs = node.Output.parse_obj(deserialize(await self.cache.get(hash_val)))
+                    outputs = node.Output.parse_obj(deserialize(await self.cache.get(hash_key)))
                 except Exception as e:
                     # Always execute if cannot get cache
                     outputs = await self._execute_node(node_name, node)
@@ -150,7 +150,7 @@ class Executor:
             # Put cache
             if(self.cache):
                 try:
-                    await self.cache.put(hash_val, serialize(dict(outputs)))
+                    await self.cache.put(hash_key, serialize(dict(outputs)))
                 except Exception as e:
                     warn(f"Error putting cache while handling node <{node_name}>，exception {e}", stacklevel=2)
         except Exception as e:

@@ -1,9 +1,9 @@
-# Moirae
-`Moirae*` is an async workflow execution engine supports static DAGs in `python`.
+# `moirae`
+`moirae*` is a light-weight async workflow execution engine supports static DAGs in `python`.
 > *) Moirae are Acient Greek gods who ensure that every being, mortal and divine, lived out their destiny as it was assigned to them by the laws of the universe.
 # Getting Started
 ## Prerequisites
-`Moirae` requires `python>3.8`.
+`moirae` requires `python>3.8`.
 ## Installation
 ## From pypi
 ```
@@ -186,16 +186,16 @@ class FileCache(moirae.Cache):
     def __init__(self, root_dir: str):
         self.root_dir = root_dir
 
-    async def exists(self, hash_val: str):
-        return os.path.exists(os.path.join(self.root_dir, hash_val))
+    async def exists(self, hash_key: str):
+        return os.path.exists(os.path.join(self.root_dir, hash_key))
 
-    async def get(self, hash_val: str):
-        async with aiofiles.open(os.path.join(self.root_dir, hash_val), mode='rb') as f:
+    async def get(self, hash_key: str):
+        async with aiofiles.open(os.path.join(self.root_dir, hash_key), mode='rb') as f:
             return await f.read()
 
-    async def put(self, hash_val: str, value: bytes):
-        async with aiofiles.open(os.path.join(self.root_dir, hash_val), mode='wb') as f:
-            await f.write(value)
+    async def put(self, hash_key: str, data_value: bytes):
+        async with aiofiles.open(os.path.join(self.root_dir, hash_key), mode='wb') as f:
+            await f.write(data_value)
 ```
 These three async method: `exists`, `get`, `put` must be implemented for a `moirae.Cache` class.
 And execute with `cache` argument:
@@ -232,7 +232,7 @@ Cache is stored!
 [1729241952.6403558]: Finish executing.
 ```
 The cache is stored at second run. So `moirae` directly fetch outputs from cache instead of running the node.
-Remember we defined `Add` node costs 1 second, `Multiply` costs 3 seconds. For example if we modify the input of node `a`, it will reuse the output of node `b`, thus only costs 2 seconds.
+Remember we defined `Add` node costs 1 second, `Multiply` costs 3 seconds. For example if we modify the input of node `a`, it will reuse the output of node `b`, only execute node `a` and `c`, thus only costs 2 seconds.
 # TODO
 - Complete unit tests
 - Implement subgraph execution
