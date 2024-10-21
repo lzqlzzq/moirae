@@ -7,7 +7,7 @@ class Cache(ABC):
 
     @abstractmethod
     async def exists(self, hash_val: str):
-        raise NotImplementedError(f'"exist" method of {self.__class__} is not implemented!')
+        raise NotImplementedError(f'"exists" method of {self.__class__} is not implemented!')
 
     @abstractmethod
     async def get(self, hash_val: str):

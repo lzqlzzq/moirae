@@ -1,19 +1,25 @@
 # Moirae
 `Moirae*` is an async workflow execution engine supports static DAGs in `python`.
-> *) Moirae are Acient Greek gods. The role of the Moirae was to ensure that every being, mortal and divine, lived out their destiny as it was assigned to them by the laws of the universe.
+> *) Moirae are Acient Greek gods who ensure that every being, mortal and divine, lived out their destiny as it was assigned to them by the laws of the universe.
 # Getting Started
 ## Prerequisites
 `Moirae` requires `python>3.8`.
-## Developmental Installation
+## Installation
+## From pypi
+```
+pip install moirae
+```
+### From Source
 ```
 git clone https://github.com/lzqlzzq/moirae
 pip install -e moirae
 ```
 ## Define Node
 Node is a basic unit in workflow where the data be transformed. A `Node` class must inherit from `moirae.Node`, which is a subclass of [Pydantic BaseModel](https://docs.pydantic.dev/latest/api/base_model/). The defination of a `Node` class must include:
-- An `Input` class: Must inherit from `moirae.Data`. Defines the input data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`.
-- An `Output` class: Must inherit from `moirae.Data`. Defines the output data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`. Attention the inputs and outputs of the node will be checked by `moirae`.
+- An `Input` class: Must inherit from `moirae.Data`. Defines the input data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`. It should also support `msgpack` protocol for serializing and hashing.
+- An `Output` class: Must inherit from `moirae.Data`. Defines the output data of the node. `moirae.Data` is also a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`. Attention the inputs and outputs of the node will be checked by `moirae`. It should also support `msgpack` protocol for serializing and hashing.
 - An `execute` fuction: Must be an `async` function. Defines how the input data will be transformed to output data. An `Input` instance will be passed into the `execute` function. The arguments of the node can be accessed by `self`.
+- Optional `arguments`: Define arguments for data transformation in `execute`. `moirae.Node` itself is a subclass of `pydantic.BaseModel`, so it behaves almost the same as `pydantic.BaseModel`. Attention the inputs and outputs of the node will be checked by `moirae`. It should also support `msgpack` protocol for serializing and hashing.
 ```[python]
 import moirae
 
@@ -141,7 +147,7 @@ nx.draw(mg.graph, with_labels=True)
 plt.show()
 ```
 ## Async Execution
-`moirae` implements a async flow executor. All `Node`s can run as soon as its prerequisites fulfilled **without any waiting**.
+`moirae` implements a async flow executor. All `Node`s can run **as soon as its prerequisites fulfilled without any waiting**.
 ```[python]
 async def run_graph():
     print(f'[{time()}]: Start executing.')
@@ -159,16 +165,21 @@ if __name__ == "__main__":
 # [1729154404.5420897]: Finish executing.
 ```
 ## Eager Execution
-You can also use `moirae.execute` directly for eager execution.
+You can also use `moirae.execute` directly to execute the graph eagerly.
 ```[python]
-print(moirae.execute(mg)) # {'a': Output(o=3.0), 'b': Output(o=6.0), 'c': Output(o=9.0)}
+print(f'[{time()}]: Start executing.')
+print(moirae.execute(mg))
+print(f'[{time()}]: Finish executing.')
+
+# [1729492804.0473106]: Start executing.
+# {'a': Output(o=3.0), 'b': Output(o=6.0), 'c': Output(o=9.0)}
+# [1729492808.0519385]: Finish executing.
 ```
 ## Cache Mechanism
 `moirae` provides a cache mechanism based on topological hashing for storing intermediate results. If the cache hits, `moirae` will try to fetch the data from the cache, avoiding re-run the node. Implement a `moirae.Cache` class like this:
 ```[python]
 import os
-import aiofiles
-
+import aiofiles  # pip install aiofiles
 
 class FileCache(moirae.Cache):
     def __init__(self, root_dir: str):
@@ -185,6 +196,7 @@ class FileCache(moirae.Cache):
         async with aiofiles.open(os.path.join(self.root_dir, hash_val), mode='wb') as f:
             await f.write(value)
 ```
+These three async method: `exists`, `get`, `put` must be implemented for a `moirae.Cache` class.
 And execute with `cache` argument:
 ```[python]
 async def execute_graph_async():
@@ -219,7 +231,7 @@ Cache is stored!
 [1729241952.6403558]: Finish executing.
 ```
 The cache is stored at second run. So `moirae` directly fetch outputs from cache instead of running the node.
-Remember we defined `Add` node costs 1 second, `Multiply` costs 3 seconds. And if we delete the cache of node `a` and `c`, it will costs only 2 seconds.
+Remember we defined `Add` node costs 1 second, `Multiply` costs 3 seconds. For example if we modify the input of node `a`, it will reuse the output of node `b`, thus only costs 2 seconds.
 # TODO
 - Complete unit tests
 - Implement subgraph execution
