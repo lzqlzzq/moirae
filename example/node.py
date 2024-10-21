@@ -6,8 +6,8 @@ import moirae
 class AddMul(moirae.Node):
     # Define input of this node
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     # Define output of this node
     class Output(moirae.Data):
@@ -18,7 +18,7 @@ class AddMul(moirae.Node):
 
     # Define execute of this node
     async def execute(self, inputs: Input) -> Output:
-        return self.Output(o=(inputs.a + inputs.b) * self.coef)
+        return self.Output(o=(inputs.x + inputs.y) * self.coef)
 
 
 def execute_node():
@@ -27,7 +27,7 @@ def execute_node():
     add_mul_instance1 = AddMul(coef=2.)
 
     # Initialize input instance of the node
-    input = AddMul.Input(a=1, b=2)
+    input = AddMul.Input(x=1, y=2)
 
     # Eagar execute the node
     output = add_mul_instance1(input)

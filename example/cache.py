@@ -6,8 +6,8 @@ import moirae
 
 class Add(moirae.Node):
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     class Output(moirae.Data):
         o: float
@@ -15,13 +15,13 @@ class Add(moirae.Node):
     async def execute(self, inputs: Input):
         await asyncio.sleep(1)  # Simulate running time
 
-        return self.Output(o=inputs.a + inputs.b)
+        return self.Output(o=inputs.x + inputs.y)
 
 
 class Multiply(moirae.Node):
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     class Output(moirae.Data):
         o: float
@@ -29,7 +29,7 @@ class Multiply(moirae.Node):
     async def execute(self, inputs: Input):
         await asyncio.sleep(3)  # Simulate running time
 
-        return self.Output(o=inputs.a * inputs.b)
+        return self.Output(o=inputs.x * inputs.y)
 
 
 import os
@@ -40,16 +40,16 @@ class FileCache(moirae.Cache):
     def __init__(self, root_dir: str):
         self.root_dir = root_dir
 
-    async def exists(self, hash_val: str):
-        return os.path.exists(os.path.join(self.root_dir, hash_val))
+    async def exists(self, hash_key: str):
+        return os.path.exists(os.path.join(self.root_dir, hash_key))
 
-    async def get(self, hash_val: str):
-        async with aiofiles.open(os.path.join(self.root_dir, hash_val), mode='rb') as f:
+    async def get(self, hash_key: str):
+        async with aiofiles.open(os.path.join(self.root_dir, hash_key), mode='rb') as f:
             return await f.read()
 
-    async def put(self, hash_val: str, value: bytes):
-        async with aiofiles.open(os.path.join(self.root_dir, hash_val), mode='wb') as f:
-            await f.write(value)
+    async def put(self, hash_key: str, data_value: bytes):
+        async with aiofiles.open(os.path.join(self.root_dir, hash_key), mode='wb') as f:
+            await f.write(data_value)
 
 
 graph = {
@@ -57,21 +57,21 @@ graph = {
         'node': 'Add',
         'arguments': {},
         'inputs': {
-            'a': 1, 'b': 2  # a.o = (1 + 2)
+            'x': 1, 'y': 2  # a.o = (1 + 2)
         }
     },
     'b': {
         'node': 'Multiply',
         'arguments': {},
         'inputs': {
-            'a': 3, 'b': 2  # b.o = (3 * 2)
+            'x': 3, 'y': 2  # b.o = (3 * 2)
         }
     },
     'c': {
         'node': 'Add',
         'arguments': {},
         'inputs': {
-            'a': '${b.o}', 'b': '${a.o}'  # c.o = (b.o + a.o)
+            'x': '${b.o}', 'y': '${a.o}'  # c.o = (b.o + a.o)
         }
     }
 }

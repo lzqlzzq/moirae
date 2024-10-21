@@ -5,8 +5,8 @@ import moirae
 
 class Add(moirae.Node):
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     class Output(moirae.Data):
         o: float
@@ -14,13 +14,13 @@ class Add(moirae.Node):
     async def execute(self, inputs: Input):
         await asyncio.sleep(1)  # Simulate running time
 
-        return self.Output(o=inputs.a + inputs.b)
+        return self.Output(o=inputs.x + inputs.y)
 
 
 class Multiply(moirae.Node):
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     class Output(moirae.Data):
         o: float
@@ -28,7 +28,7 @@ class Multiply(moirae.Node):
     async def execute(self, inputs: Input):
         await asyncio.sleep(3)  # Simulate running time
 
-        return self.Output(o=inputs.a * inputs.b)
+        return self.Output(o=inputs.x * inputs.y)
 
 
 graph = {
@@ -36,21 +36,21 @@ graph = {
         'node': 'Add',
         'arguments': {},
         'inputs': {
-            'a': 1, 'b': 2  # a.o = (1 + 2)
+            'x': 1, 'y': 2  # a.o = (1 + 2)
         }
     },
     'b': {
         'node': 'Multiply',
         'arguments': {},
         'inputs': {
-            'a': 3, 'b': 2  # b.o = (3 * 2)
+            'x': 3, 'y': 2  # b.o = (3 * 2)
         }
     },
     'c': {
         'node': 'Add',
         'arguments': {},
         'inputs': {
-            'a': '${b.o}', 'b': '${a.o}'  # c.o = (b.o + a.o)
+            'x': '${b.o}', 'y': '${a.o}'  # c.o = (b.o + a.o)
         }
     }
 }

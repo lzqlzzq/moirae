@@ -26,8 +26,8 @@ import moirae
 class AddMul(moirae.Node):
     # Define input of this node
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     # Define output of this node
     class Output(moirae.Data):
@@ -38,7 +38,7 @@ class AddMul(moirae.Node):
 
     # Define execute of this node, write your logic here
     async def execute(self, inputs: Input) -> Output:
-        added = inputs.a + inputs.b         # Make use of the input
+        added = inputs.x + inputs.y         # Make use of the input
         multiplied = self.coef * added      # Make use of the node' s argument
         result = self.Output(o=multiplied)  # Must return a self.Output
 
@@ -55,7 +55,7 @@ You can eagerly execute the node. The result would be returned as the node is su
 add_mul_instance1 = AddMul(coef=2.)
 
 # Initialize input instance of the node
-input = AddMul.Input(a=1, b=2)
+input = AddMul.Input(x=1, y=2)
 
 # Eagar execute the node
 output = add_mul_instance1(input)
@@ -68,29 +68,29 @@ Let' define two types of `Node`.
 ```[python]
 class Add(moirae.Node):
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     class Output(moirae.Data):
         o: float
 
     async def execute(self, inputs: Input):
-        await asyncio.sleep(1)  # Simulate waiting time
+        await asyncio.sleep(1)  # Simulate running time
 
-        return self.Output(o=inputs.a + inputs.b)
+        return self.Output(o=inputs.x + inputs.y)
 
 class Multiply(moirae.Node):
     class Input(moirae.Data):
-        a: float
-        b: float
+        x: float
+        y: float
 
     class Output(moirae.Data):
         o: float
 
     async def execute(self, inputs: Input):
-        await asyncio.sleep(2)  # Simulate waiting time
+        await asyncio.sleep(2)  # Simulate running time
 
-        return self.Output(o=inputs.a * inputs.b)
+        return self.Output(o=inputs.x * inputs.y)
 ```
 We can build a simple graph with three nodes. The graph is a `dict[node_name: str, node_attr: dict]`.
 These attributes must be in `node_attr`:
@@ -103,21 +103,21 @@ graph = {
         'node': 'Add',
         'arguments': {},
         'inputs': {
-            'a': 1, 'b': 2  # a.o = (1 + 2)
+            'x': 1, 'y': 2  # a.o = (1 + 2)
         }
     },
     'b': {
         'node': 'Multiply',
         'arguments': {},
         'inputs': {
-            'a': 3, 'b': 2  # b.o = (3 * 2)
+            'x': 3, 'y': 2  # b.o = (3 * 2)
         }
     },
     'c': {
         'node': 'Add',
         'arguments': {},
         'inputs': {
-            'a': '${b.o}', 'b': '${a.o}'  # c.o = (b.o + a.o)
+            'x': '${b.o}', 'y': '${a.o}'  # c.o = (b.o + a.o)
         }
     }
 }
@@ -131,11 +131,11 @@ print(mg.graph.edges(data=True))
 
 """
 inputs_schema: {}
-args_schema: {'a': {'a': FieldInfo(annotation=float, required=True), 'b': FieldInfo(annotation=float, required=True)}, 'b': {'a': FieldInfo(annotation=float, required=True), 'b': FieldInfo(annotation=float, required=True)}}
+args_schema: {'a': {'x': FieldInfo(annotation=float, required=True), 'y': FieldInfo(annotation=float, required=True)}, 'b': {'x': FieldInfo(annotation=float, required=True), 'y': FieldInfo(annotation=float, required=True)}}
 outputs_schema: {'a': <class '__main__.Add.Output'>, 'b': <class '__main__.Multiply.Output'>, 'c': <class '__main__.Add.Output'>}
-input_data: {'a': {'a': 1, 'b': 2}, 'b': {'a': 3, 'b': 2}}
-nodes: [('a', {'node': Add(), 'hash': '305dbab2622b17d1c126c74fd9f6fda61dba11f0c9194fc0f703a52ee9e56fccd048b677c11fd4b4c0bf1eea68a7fce6570420b8ac17af92473cbad18154e024'}), ('b', {'node': Multiply(), 'hash': '7e2350d2b67eda7e2b5f6e0d04657fb943c0a87477fc692a9d17f9514b0b227ae6fcd11c6b1be31c2fa3e1a759573ce673ea37d0b55acd1860490d6732525d41'}), ('c', {'node': Add(), 'hash': '3d5d618cb1fc65d25d01f790e04b68a832fd618bb78902b2f5c517a7a284ec967f55cd777ae42d8df06840424129609a553b3731981ab6c813e27e54051413cf'})]
-edges: [('a', 'c', {'output_field': 'o', 'input_field': 'b'}), ('b', 'c', {'output_field': 'o', 'input_field': 'a'})]
+input_data: {'a': {'x': 1, 'y': 2}, 'b': {'x': 3, 'y': 2}, 'c': {'x': None, 'y': None}}
+nodes: [('a', {'node': Add(), 'hash': 'bbdadddac55732cd29aa32d15e88cabdba9d9b064336105838fc57916d8e89a9e208f0b7ddd09d1946093f576f864da3ccf5660d5a25f8bf8ac1faf434acc97d'}), ('b', {'node': Multiply(), 'hash': '84fa63db9acf5dbfd94dd535e61cdcf7cdf8e39046d35a3091e299b1d1663c72df48b8f7a123f7434547a9528c5012021ce6d7b1325435d2a93e5c5f57609f20'}), ('c', {'node': Add(), 'hash': '8a2a9794af9da740059c6e92eed17ff70445babad56dffe646c110b6069903bf563b203feae86ba4fcc00fafb5b80b18da7b82e50a45aecfc4d2499863013bd4'})]
+edges: [('a', 'c', {'output_field': 'o', 'input_field': 'y'}), ('b', 'c', {'output_field': 'o', 'input_field': 'x'})]
 """
 ```
 Or visualize it with `networkx` and `matplotlib`:
