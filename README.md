@@ -42,7 +42,7 @@ class AddMul(moirae.Node):
         multiplied = self.coef * added      # Make use of the node' s argument
         result = self.Output(o=multiplied)  # Must return a self.Output
 
-        return resutlt
+        return result
 ```
 Then, it would be registered in `moirae.NODES`:
 ```[python]
@@ -146,6 +146,7 @@ import matplotlib.pyplot as plt
 nx.draw(mg.graph, with_labels=True)
 plt.show()
 ```
+![](/assets/graph.png)
 ## Async Execution
 `moirae` implements a async flow executor. All `Node`s can run **as soon as its prerequisites fulfilled without any waiting**.
 ```[python]
