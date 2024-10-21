@@ -13,7 +13,6 @@ class Executor:
         assert isinstance(graph, Graph)
 
         self.graph = deepcopy(graph.graph)
-        self.input_data_lock = asyncio.Lock()
         self.input_data = deepcopy(graph.input_data)
         self.outputs = asyncio.Queue()
 
@@ -139,7 +138,7 @@ class Executor:
                 outputs = await self._execute_node(node_name, node)
 
             # Dispatch data to downstream nodes
-            await self._dispatch_data(outputs, dataflow)
+            self._dispatch_data(outputs, dataflow)
 
             for l in downstream_latch:
                 await l.count_down()
@@ -159,7 +158,7 @@ class Executor:
 
     async def _execute_node(self, node_name: str, node: Node):
         # Parse data
-        data = node.Input.parse_obj(self.input_data[node_name])
+        data = node.Input.parse_obj(self.input_data.pop(node_name))
 
         # Execute the node
         node.check_inputs(data)
@@ -168,19 +167,13 @@ class Executor:
 
         return outputs
 
-    async def _dispatch_data(self,
+    def _dispatch_data(self,
         node_outputs: Data,
         dataflow: dict[str, list[tuple[str, str]]]):
-        async with self.input_data_lock:
-            for out_node, data_flow in dataflow.items():
-                for output_field, input_field in data_flow:
-                    if(out_node not in self.input_data):
-                        self.input_data[out_node] = {}
-                    if(input_field not in self.input_data[out_node]):
-                        self.input_data[out_node][input_field] = {}
-
-                    data = getattr(node_outputs, output_field)
-                    self.input_data[out_node][input_field] = deepcopy(data)
+        for out_node, data_flow in dataflow.items():
+            for output_field, input_field in data_flow:
+                data = getattr(node_outputs, output_field)
+                self.input_data[out_node][input_field] = deepcopy(data)
 
 
 execute_async = Executor

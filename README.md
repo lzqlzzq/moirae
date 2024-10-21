@@ -222,5 +222,4 @@ The cache is stored at second run. So `moirae` directly fetch outputs from cache
 Remember we defined `Add` node costs 1 second, `Multiply` costs 3 seconds. And if we delete the cache of node `a` and `c`, it will costs only 2 seconds.
 # TODO
 - Complete unit tests
-- Implement gc based on transitive closure and reference count
 - Implement subgraph execution

@@ -49,6 +49,10 @@ class Graph:
                     Expected schema of arguments is: {node_attrs['node'].schema()}.\n
                     But received: {node_attrs["arguments"]}.''')
 
+            # Reserve slot for input of node
+            if(node_name not in self.input_data):
+                self.input_data[node_name] = {}
+
             self.outputs_schema[node_name] = node_class.Output
             self.graph.add_node(node_name, node=node)
 
@@ -64,6 +68,9 @@ class Graph:
 
             for input_field, data in node_attrs['inputs'].items():
 
+                # Reserve slot for input field of node
+                self.input_data[node_name][input_field] = None
+
                 # Not support dummy input for now.
                 """
                 # Handle dummy input
@@ -75,7 +82,6 @@ class Graph:
 
                     continue
                 """
-
 
                 # Handle edge
                 if(type(data) == str and _REF_RE.match(data)):
@@ -100,8 +106,6 @@ class Graph:
                     continue
 
                 # Handle value
-                if(node_name not in self.input_data):
-                    self.input_data[node_name] = {}
                 self.input_data[node_name][input_field] = deepcopy(data)
 
                 if(node_name not in self.args_schema):
