@@ -166,7 +166,7 @@ if __name__ == "__main__":
 # [1729154404.5420897]: Finish executing.
 ```
 ## Eager Execution
-You can also use `moirae.execute` directly to execute the graph eagerly.
+You can also use `moirae.execute` directly to execute the whole graph eagerly.
 ```[python]
 print(f'[{time()}]: Start executing.')
 print(moirae.execute(mg))
