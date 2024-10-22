@@ -3,9 +3,10 @@
 > *) Moirae are Acient Greek gods who ensure that every being, mortal and divine, lived out their destiny as it was assigned to them by the laws of the universe.
 # Getting Started
 ## Prerequisites
-`moirae` requires `python>3.8`.
+`moirae` requires `python>=3.8`.
+**In `Windows`, please use `python>=3.9` because of a bug related to `asyncio` from python standard library.**
 ## Installation
-## From pypi
+### From pypi
 ```
 pip install moirae
 ```
