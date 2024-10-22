@@ -3,6 +3,7 @@ import hashlib
 from copy import deepcopy
 
 import networkx as nx
+from pydantic import ValidationError
 
 from moirae.node import Node, NODES
 from moirae.hash import stable_hash
@@ -42,9 +43,11 @@ class Graph:
 
             try:
                 node = node_class.parse_obj(node_attrs['arguments'])
+            except ValidationError as e:
+                raise e
             except:
                 raise AttributeError(f'''Cannot initialize node {node_name}.\n
-                    Expected schema of arguments is: {node_attrs['node'].schema()}.\n
+                    Expected schema of arguments is: {node_class.schema()}.\n
                     But received: {node_attrs["arguments"]}.''')
 
             # Reserve slot for input of node
