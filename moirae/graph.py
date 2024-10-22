@@ -44,11 +44,11 @@ class Graph:
             try:
                 node = node_class.parse_obj(node_attrs['arguments'])
             except ValidationError as e:
-                raise e
-            except:
+                raise ValidationError(f"Cannot initialize node {node_name}. The node arguments are invaild.") from e
+            except Exception as e:
                 raise AttributeError(f'''Cannot initialize node {node_name}.\n
                     Expected schema of arguments is: {node_class.schema()}.\n
-                    But received: {node_attrs["arguments"]}.''')
+                    But received: {node_attrs["arguments"]}.''') from e
 
             # Reserve slot for input of node
             if(node_name not in self.input_data):
@@ -100,7 +100,7 @@ class Graph:
                     out_type = out_node_class.output_fields[output_field].annotation
                     in_type = this_node.input_fields[input_field].annotation
                     if(out_type != in_type):
-                        raise TypeError(f"""Type of output <node id={out_node}>.{output_field}({in_type}) is not the same as <node id={node_name}>.{in_var_name}({in_type})""")
+                        raise TypeError(f"""Type of output from ${{{out_node}.{output_field}}}(<{out_node_class.Output}.{output_field}>: {out_type}) is not the same as ${{{node_name}.{input_field}}}(<{this_node.Input}.{input_field}>: {in_type})""")
 
                     self.graph.add_edge(out_node, node_name, output_field=output_field, input_field=input_field)
 
