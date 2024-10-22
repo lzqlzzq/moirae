@@ -39,9 +39,9 @@ class Node(BaseModel, ABC):
     def _get_signature(cls):
         return stable_hash(
             cls.__class__.__name__,
-            sorted(list(cls.__dict__.keys())),
-            sorted(list(cls.Input.__dict__.keys())),
-            sorted(list(cls.Output.__dict__.keys())),
+            sorted(list(cls.__fields__.keys())),
+            sorted(list(cls.Input.__fields__.keys())),
+            sorted(list(cls.Output.__fields__.keys())),
             inspect.getsource(cls.execute))
 
     @abstractmethod
