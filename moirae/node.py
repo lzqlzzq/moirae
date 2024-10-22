@@ -39,9 +39,9 @@ class Node(BaseModel, ABC):
     def _get_signature(cls):
         return stable_hash(
             cls.__class__.__name__,
-            list(cls.__dict__.keys()),
-            list(cls.Input.__dict__.keys()),
-            list(cls.Output.__dict__.keys()),
+            sorted(list(cls.__dict__.keys())),
+            sorted(list(cls.Input.__dict__.keys())),
+            sorted(list(cls.Output.__dict__.keys())),
             inspect.getsource(cls.execute))
 
     @abstractmethod
@@ -67,7 +67,7 @@ class Node(BaseModel, ABC):
     def hash(self):
         return stable_hash(
                 self._signature,
-                sorted(self.__dict__.items()))
+                sorted(self.__dict__.items(), key=lambda x: x[0]))
 
     @property
     def input_fields(self):

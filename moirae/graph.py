@@ -122,12 +122,14 @@ class Graph:
             this_node = self.graph.nodes[n]
 
             # Hash of Leaf Nodes: hash(hash(Node); hash(Input))
-            this_node['hash'] = stable_hash(this_node['node'].hash, stable_hash(self.input_data[n]))
+            this_node['hash'] = stable_hash(this_node['node'].hash,
+                stable_hash(sorted(self.input_data[n].items(), key=lambda x: x[0])))
 
         # Handle other nodes
         for n in nx.topological_sort(self.graph):  # nx.topological_sort will discard isolated nodes
             this_node = self.graph.nodes[n]
             if(in_degrees[n] == 0):
+                # Discard Leaf Nodes
                 continue
             elif(in_degrees[n] == len(this_node['node'].input_fields)):
                 # Hash Nodes without ouside inputs: hash(hash(Node); hash(ParentNodes))
@@ -139,5 +141,5 @@ class Graph:
                 this_node['hash'] = stable_hash(
                         this_node['node'].hash,
                         list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
-                        stable_hash(self.input_data[n]))
+                        stable_hash(sorted(self.input_data[n].items(), key=lambda x: x[0])))
 
