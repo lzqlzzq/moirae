@@ -4,7 +4,8 @@
 # Getting Started
 ## Prerequisites
 `moirae` requires `python>=3.8`.
-**In `Windows`, please use `python>=3.9` because of a bug related to `asyncio` from python standard library.**
+
+**\*) In `Windows`, please use `python>=3.9` because of a bug related to `asyncio` from python standard library.**
 ## Installation
 ### From pypi
 ```
