@@ -203,9 +203,6 @@ class Executor:
                 self.input_data[output_node][input_field] = deepcopy(data)
 
 
-execute_async = Executor
-
-
 def execute(*args, **kwargs):
     async def execute_wrapper():
         async with Executor(*args, **kwargs) as exe:
