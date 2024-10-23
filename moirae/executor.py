@@ -9,18 +9,37 @@ from moirae import Graph, Node, Data, Cache, CacheIOError
 
 
 class Executor:
-    def __init__(self, graph: Graph, cache: Cache = None):
+    def __init__(self, graph: Graph,
+        cache: Cache = None, timeout: float = None, return_exceptions: bool = False):
         assert isinstance(graph, Graph)
+
+        self.cache = cache
+        self.timeout = timeout
+        self.return_exceptions = return_exceptions
 
         self.graph = deepcopy(graph.graph)
         self.input_data = deepcopy(graph.input_data)
         self.outputs = asyncio.Queue()
 
+    async def __aenter__(self):
         self.done = False
-        self.cache = cache
 
         # Execute
-        asyncio.create_task(self.execute())
+        self.tasks = []
+        self.execution = asyncio.create_task(self.execute())
+
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        for t in self.tasks:
+            if(not t.done):
+                await t.cancel()
+
+        if(not self.execution.done):
+            await self.execution.cancel()
+
+        if(exc_type):
+            return False
 
     def __aiter__(self):
         return self
@@ -67,13 +86,12 @@ class Executor:
         coroutines = []
         for node_name, node_data in self.graph.nodes(data=True):
             coroutines.append(
-                asyncio.create_task(
-                    self._node_worker(node_name,
-                        node_data['node'],
-                        node_data['dataflow'] if 'dataflow' in node_data else {},
-                        node_data['latch'],
-                        node_data['latch_to_countdown'] if 'latch_to_countdown' in node_data else [],
-                        node_data['hash'])))
+                self._node_worker(node_name,
+                    node_data['node'],
+                    node_data['dataflow'] if 'dataflow' in node_data else {},
+                    node_data['latch'],
+                    node_data['latch_to_countdown'] if 'latch_to_countdown' in node_data else [],
+                    node_data['hash']))
 
         return coroutines
 
@@ -95,25 +113,23 @@ class Executor:
         if(self.cache):
             self.available_cache = await self._check_cache()
 
-        self.tasks = self._dispatch_tasks()
-
+        self.tasks = [asyncio.create_task(coro) for coro in self._dispatch_tasks()]
         exc = None
-        for coro in asyncio.as_completed(self.tasks):
+
+        for task in asyncio.as_completed(self.tasks):
             try:
-                await coro
-            except Exception as e:
+                result = await task
+            # except TimeoutError:
+            #    pass
+            except BaseException as e:
                 exc = e
+
                 break
 
-        # Send a stop signal
         self.done = True
         await self.outputs.put(None)
 
-        if(exc):
-            for t in self.tasks:
-                if(not t.done()):
-                    t.cancel()
-
+        if(exc and not self.return_exceptions):
             raise exc
 
     async def _node_worker(self,
@@ -123,19 +139,18 @@ class Executor:
         upstream_latch: Latch,
         downstream_latch: list[Latch],
         hash_key: str):
-        await upstream_latch.wait()
-
         try:
+            await upstream_latch.wait()
+            outputs = None
             if(self.cache and hash_key in self.available_cache):
                 try:
                     # Cache hit
                     outputs = node.Output.parse_obj(deserialize(await self.cache.get(hash_key)))
-                except Exception as e:
-                    # Always execute if cannot get cache
-                    outputs = await self._execute_node(node_name, node)
+                except BaseException as e:
                     warn(f"Error getting cache while handling node <{node_name}>，exception {e}", stacklevel=2)
-            else:
-                # Cache miss, execute node
+            
+            if(outputs is None):
+                # Cache miss or fetch failed, execute node
                 outputs = await self._execute_node(node_name, node)
 
             # Dispatch data to downstream nodes
@@ -150,11 +165,18 @@ class Executor:
             # Put cache
             if(self.cache):
                 try:
-                    await self.cache.put(hash_key, serialize(dict(outputs)))
-                except Exception as e:
+                    await self.cache.put(hash_key, serialize(outputs.model_dump()))
+                except BaseException as e:
                     warn(f"Error putting cache while handling node <{node_name}>，exception {e}", stacklevel=2)
-        except Exception as e:
-            # self.outputs.put_nowait((node_name, e))
+        except asyncio.exceptions.CancelledError:
+            pass
+        except TimeoutError as e:
+            if(self.return_exceptions):
+                self.outputs.put_nowait((node_name, e))
+            raise RuntimeError(f"Node <{node_name}> timeout!") from e
+        except BaseException as e:
+            if(self.return_exceptions):
+                self.outputs.put_nowait((node_name, e))
             raise RuntimeError(f"Error while handling node <{node_name}>") from e
 
     async def _execute_node(self, node_name: str, node: Node):
@@ -163,7 +185,10 @@ class Executor:
 
         # Execute the node
         node.check_inputs(data)
-        outputs = await node.execute(data)
+        try:
+            outputs = await asyncio.wait_for(node.execute(data), self.timeout)
+        except BaseException as e:
+            raise
         node.check_outputs(outputs)
 
         return outputs
@@ -183,6 +208,7 @@ execute_async = Executor
 
 def execute(*args, **kwargs):
     async def execute_wrapper():
-        return {node_name: node_output async for (node_name, node_output) in Executor(*args, **kwargs)}
+        async with Executor(*args, **kwargs) as exe:
+            return {node_name: node_output async for (node_name, node_output) in exe}
 
     return asyncio.run(execute_wrapper())

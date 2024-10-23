@@ -154,8 +154,9 @@ plt.show()
 ```[python]
 async def run_graph():
     print(f'[{time()}]: Start executing.')
-    async for (node_name, node_output) in moirae.execute_async(mg):
-        print(f'[{time()}]{node_name}: {node_output}')
+    async with moirae.Executor(mg) as exe:
+        async for (node_name, node_output) in exe:
+            print(f'[{time()}]{node_name}: {node_output}')
     print(f'[{time()}]: Finish executing.')
 
 if __name__ == "__main__":

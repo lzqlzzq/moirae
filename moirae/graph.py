@@ -34,7 +34,7 @@ class Graph:
     def _add_nodes(self, graph):
         for node_name, node_attrs in graph.items():
             if(re.match(_VAR_NAME_RE, node_name) is None):
-                raise NameError(f"node_name {node_name} is invaild.")
+                raise NameError(f"node_name {node_name} is invaild. It should consistent with naming rules of python variable.")
 
             if(node_attrs['node'] not in NODES):
                 raise ValueError(f"Unknown processor node {node_attrs['node']} of node name {node_name}.")

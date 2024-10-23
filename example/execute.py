@@ -61,8 +61,9 @@ async def execute_graph_async():
     mg = moirae.Graph(graph)
 
     print(f'[{time()}]: Start executing.')
-    async for (node_name, node_output) in moirae.execute_async(mg):
-        print(f'[{time()}]{node_name}: {node_output}')
+    async with moirae.Executor(mg) as exe:
+        async for (node_name, node_output) in exe:
+            print(f'[{time()}]{node_name}: {node_output}')
     print(f'[{time()}]: Finish executing.')
 
 
