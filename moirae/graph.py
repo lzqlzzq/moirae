@@ -128,18 +128,21 @@ class Graph:
         # Handle other nodes
         for n in nx.topological_sort(self.graph):  # nx.topological_sort will discard isolated nodes
             this_node = self.graph.nodes[n]
+
             if(in_degrees[n] == 0):
                 # Discard Leaf Nodes
                 continue
             elif(in_degrees[n] == len(this_node['node'].input_fields)):
-                # Hash Nodes without ouside inputs: hash(hash(Node); hash(ParentNodes))
+                # Hash Nodes without ouside inputs: hash(hash(Node); hash(ParentNodes, InEdges))
                 this_node['hash'] = stable_hash(
                         this_node['node'].hash,
-                        list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]))
+                        [(self.graph.nodes(data=True)[out_n]['hash'],
+                            stable_hash(sorted(edge_data.items()))) for out_n, in_n, edge_data in sorted(self.graph.in_edges(data=True)) if in_n == n])
             else:
-                # Hash Nodes with ouside inputs: hash(hash(Node); hash(ParentNodes); hash(Input))
+                # Hash Nodes with ouside inputs: hash(hash(Node); hash(Input); hash(ParentNodes, InEdges))
                 this_node['hash'] = stable_hash(
                         this_node['node'].hash,
-                        list([self.graph.nodes(data=True)[anc_n]['hash'] for anc_n in sorted(nx.ancestors(self.graph, n))]),
+                        [(self.graph.nodes(data=True)[out_n]['hash'],
+                            stable_hash(sorted(edge_data.items()))) for out_n, in_n, edge_data in sorted(self.graph.in_edges(data=True)) if in_n == n],
                         stable_hash(sorted(self.input_data[n].items(), key=lambda x: x[0])))
 
