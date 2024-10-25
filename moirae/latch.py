@@ -26,7 +26,7 @@ class Latch:
             return self._count
 
     def __str__(self):
-        return f"<CountDownLatch count={self._count}>"
+        return f"<CountDownLatch count={self._count} at {id(self)}>"
 
     def __repr__(self):
         return self.__str__()

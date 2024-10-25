@@ -60,7 +60,7 @@ class Executor:
             self.graph.nodes(data=True)[node_name]['latch'] = latch
             # Add hook to predcessors for counting down
             for p in predcessors:
-                if(not hasattr(self.graph.nodes(data=True)[p], 'latch_to_countdown')):
+                if('latch_to_countdown' not in self.graph.nodes(data=True)[p]):
                     self.graph.nodes(data=True)[p]['latch_to_countdown'] = []
                 self.graph.nodes(data=True)[p]['latch_to_countdown'].append(latch)
 
@@ -84,6 +84,7 @@ class Executor:
 
         # Create coroutines
         coroutines = []
+
         for node_name, node_data in self.graph.nodes(data=True):
             coroutines.append(
                 self._node_worker(node_name,
