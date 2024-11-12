@@ -161,7 +161,7 @@ class Executor:
                 await l.count_down()
 
             # Return data
-            self.outputs.put_nowait((node_name, deepcopy(outputs)))
+            await self.outputs.put((node_name, deepcopy(outputs)))
 
             # Put cache
             if(self.cache):
